@@ -16,12 +16,7 @@ local main = function ()
         return;
     end
 
-    local h = ngx.req.get_headers()
-    for k, v in pairs(h) do
-        ngx.log(ngx.DEBUG, k, ": ", v);
-    end
-
-    local data = ngx.req.get_body_data();
+    ngx.req.get_body_data();
 
     local args, err = ngx.req.get_post_args();
     local token = args["token"];
@@ -33,7 +28,15 @@ local main = function ()
         ngx.print(cjson.encode(rsp));
         return;
     end
-    if token ~= "rongle_sms317" then -- 简单鉴权
+
+    -- 参数有效性检查
+    if string.len(phone) > 20 or string.len(verifycode) > 16 then
+        rsp["result"] = "407";
+        rsp["message"] = "invalid argument";
+        ngx.print(cjson.encode(rsp));
+        return;
+    end
+    if token ~= "rongle_sms317s" then -- 简单鉴权
         rsp["result"] = "407";
         rsp["message"] = "invalid argument";
         ngx.print(cjson.encode(rsp));
@@ -98,11 +101,9 @@ local main = function ()
     end
 
     -- 缓存验证码待校验
-
     local cache_val = {};
     cache_val.verifycode = verifycode;
-    cache_val.checked = "0"; -- 是否已被校验
-    ok, err = rds:setex("rongle.sms." .. phone, "10", ngx.encode_base64(cjson.encode(cache_val)));
+    ok, err = rds:setex("rongle.sms." .. phone, "30", ngx.encode_base64(cjson.encode(cache_val)));
     if not ok then
         ngx.log(ngx.ERR, "failed to set to redis:", err);
         rsp["result"] = "500";
