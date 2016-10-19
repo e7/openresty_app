@@ -3,7 +3,6 @@
 <head>
   <title>短信测试</title>
   <meta charset="utf-8">
-  <script src="http://cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
 </head>
 <body>
   <p>发送短信验证码</p>
@@ -17,11 +16,13 @@
   <input id="c_verifycode" name="verifycode" type="text" placeholder="验证码" />
   <button id="check" type="button">校验</button>
 
+  <script src="http://cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+  <script src="base64.min.js"></script>
   <script>
     $(document).ready(function() {
       $("#send").click(function() {
         $.post("http://112.74.133.118:8317/sendcode",
-               {token:$("#s_token").val(), phone:$("#s_phone").val(), verifycode:$("#s_verifycode").val()}, function(data, status, xhr) {
+               {token:$("#s_token").val(), phone:$("#s_phone").val(), verifycode:Base64.encode($("#s_verifycode").val())}, function(data, status, xhr) {
             if (data.result == "200") {
                 alert("success");
             } else {

@@ -22,7 +22,8 @@ local main = function ()
     local args, err = ngx.req.get_post_args();
     local token = args["token"];
     local phone = args["phone"];
-    local verifycode = args["verifycode"];
+    local verifycode = ngx.decode_base64(args["verifycode"]);
+    ngx.log(ngx.ERR, verifycode);
     if string.is_empty(token) or string.is_empty(phone) or string.is_empty(verifycode) then
         rsp["result"] = "406";
         rsp["message"] = "missing argument";
@@ -33,7 +34,7 @@ local main = function ()
     -- 参数有效性检查
     local icv = iconv.new("gbk", "utf8");
     local dst_msg, err = icv:iconv(verifycode);
-    if string.len(phone) > 20 or string.len(verifycode) > 16 or err then
+    if string.len(phone) > 20 or string.len(verifycode) > 144 or err then
         rsp["result"] = "407";
         rsp["message"] = "invalid argument";
         ngx.print(cjson.encode(rsp));
@@ -100,7 +101,7 @@ local main = function ()
     local sms_rsp = ngx.location.capture("/sms?username=" .. sms_conf.username .. "&password=" .. sms_conf.password .. "&message=" .. dst_msg .. "&phone=" .. phone .. "&epid=" .. sms_conf.epid .. "&linkid=&subcode=" .. sms_conf.subcode);
     if tonumber(sms_rsp.status) ~= 200 or "00" ~= sms_rsp.body then
         -- 请求短信网关失败
-        ngx.log(ngx.ERR, "failed to send message to sms:%s,%s", sms_rsp.status, sms_rsp.body);
+        ngx.log(ngx.ERR, "failed to send message to sms:" .. sms_rsp.status .. "," .. sms_rsp.body);
         rsp["result"] = "500";
         rsp["message"] = "server failed";
         ngx.print(cjson.encode(rsp));
