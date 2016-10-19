@@ -2,6 +2,7 @@ local cjson = require("cjson");
 local redis = require("resty.redis");
 local misc = require("misc");
 local sms_conf = require("rongle.sms_conf");
+local iconv = require("iconv");
 
 
 local main = function ()
@@ -30,13 +31,17 @@ local main = function ()
     end
 
     -- 参数有效性检查
-    if string.len(phone) > 20 or string.len(verifycode) > 16 then
+    local icv = iconv.new("gbk", "utf8");
+    local dst_msg, err = icv:iconv(verifycode);
+    if string.len(phone) > 20 or string.len(verifycode) > 16 or err then
         rsp["result"] = "407";
         rsp["message"] = "invalid argument";
         ngx.print(cjson.encode(rsp));
         return;
     end
-    if token ~= "rongle_sms317s" then -- 简单鉴权
+    
+    -- 简单鉴权
+    if token ~= "rongle_sms317s" then
         rsp["result"] = "407";
         rsp["message"] = "invalid argument";
         ngx.print(cjson.encode(rsp));
@@ -90,7 +95,9 @@ local main = function ()
     end
 
     -- 访问短信网关
-    local sms_rsp = ngx.location.capture("/sms?username=" .. sms_conf.username .. "&password=" .. sms_conf.password .. "&message=" .. verifycode .. "&phone=" .. phone .. "&epid=" .. sms_conf.epid .. "&linkid=&subcode=" .. sms_conf.subcode);
+    
+    
+    local sms_rsp = ngx.location.capture("/sms?username=" .. sms_conf.username .. "&password=" .. sms_conf.password .. "&message=" .. dst_msg .. "&phone=" .. phone .. "&epid=" .. sms_conf.epid .. "&linkid=&subcode=" .. sms_conf.subcode);
     if tonumber(sms_rsp.status) ~= 200 or "00" ~= sms_rsp.body then
         -- 请求短信网关失败
         ngx.log(ngx.ERR, "failed to send message to sms:%s,%s", sms_rsp.status, sms_rsp.body);
