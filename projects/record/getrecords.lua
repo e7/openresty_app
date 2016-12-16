@@ -31,32 +31,36 @@ function main()
         return
     end
 
-	local home_dir = base_dir .. "/" .. rid
+    local home_dir = base_dir .. "/" .. rid .. "/" .. date
     local status, gnrt, data = pcall(lfs.dir, home_dir)
     if not status then
         rsp["error_no"] = "404"
         rsp["error_msg"] = "not found"
-    	ngx.print(cjson.encode(rsp))
-		return
-	end
+        ngx.print(cjson.encode(rsp))
+        return
+    end
 
     local count = 0
     local filelist = {}
     rsp["error_no"] = "200"
     rsp["error_msg"] = "success"
     for file in gnrt, data do
-		local path = home_dir .. "/" .. file
+        local path = home_dir .. "/" .. file
 
         local attr,err = lfs.attributes(path)
         if attr and "file" == attr.mode then
-			count = count + 1
-			table.insert(filelist, {desc=file, url=base_url .. "/" .. rid .. "/" .. file})
+            count = count + 1
+            local rfile = string.reverse(file)
+            local _, i = string.find(rfile, "%.")
+            table.insert(filelist, {
+                desc=string.sub(file, 1, string.len(rfile) - i), url=base_url .. "/" .. rid .. "/" .. file
+            })
         end
     end
     rsp["listcount"] = tostring(count)
-	rsp["filelist"] = filelist
+    rsp["filelist"] = filelist
 
-	cjson.encode_empty_table_as_object(false)
+    cjson.encode_empty_table_as_object(false)
     ngx.print(cjson.encode(rsp))
 end
 
